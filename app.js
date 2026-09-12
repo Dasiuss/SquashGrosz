@@ -77,7 +77,10 @@ function syncRowSelected() {
   for (const p of PLAYERS) {
     const cb = $(`#fp-${p.id}`);
     const row = cb?.closest(".player-row");
-    if (row) row.classList.toggle("selected", !!cb?.checked);
+    if (row) {
+      row.classList.toggle("selected", !!cb?.checked);
+      row.setAttribute("aria-checked", cb?.checked ? "true" : "false");
+    }
   }
 }
 
@@ -92,14 +95,13 @@ function buildFormPlayers() {
     row.setAttribute("aria-label", `Zaznacz obecność: ${p.nick}`);
     row.dataset.player = p.id;
     row.innerHTML = `
-      <label class="player-select"><input type="checkbox" id="fp-${p.id}" tabindex="-1" /> <span class="player-avatar">${esc(p.nick[0])}</span><span class="player-name">${esc(p.nick)}</span></label>
+      <div class="player-select"><input class="player-checkbox" type="checkbox" id="fp-${p.id}" tabindex="-1" aria-hidden="true" /> <span class="player-avatar">${esc(p.nick[0])}</span><span class="player-name">${esc(p.nick)}</span></div>
       ${p.hasMS
         ? `<label class="ms-control"><span>MS</span><input type="number" id="fm-${p.id}" min="0" max="5" step="1" value="0" aria-label="Liczba odbić MS: ${esc(p.nick)}" /></label>`
         : `<span class="ms-tag">bez MS</span><input type="hidden" id="fm-${p.id}" value="0" />`}
     `;
     row.addEventListener("click", (e) => {
       if (e.target.closest(".ms-control") || e.target.closest('input[type="number"]')) return;
-      if (e.target.closest('input[type="checkbox"]')) return;
       const cb = row.querySelector('input[type="checkbox"]');
       if (!cb) return;
       cb.checked = !cb.checked;
@@ -203,8 +205,8 @@ function render() {
   const admin = !!session;
   const showForm = admin && (formOpen || !!editingId);
   $("#admin-panel").hidden = !showForm;
-  const actions = $("#admin-actions");
-  if (actions) actions.hidden = !admin || showForm;
+  const addButton = $("#btn-show-form");
+  if (addButton) addButton.hidden = !admin || showForm;
   const authBtn = $("#auth-btn");
   if (authBtn) {
     authBtn.innerHTML = lockIcon;
@@ -213,8 +215,18 @@ function render() {
     // brak wylogowania: po zalogowaniu ikona znika
     authBtn.hidden = admin;
   }
+  renderLedgerHeader();
   renderMeetings(admin);
   renderTotals(admin);
+}
+
+function renderLedgerHeader() {
+  const header = $("#ledger-header");
+  if (!header) return;
+  header.innerHTML = `
+    <div class="ledger-heading">Spotkanie</div>
+    ${PLAYERS.map((p) => `<div class="ledger-player-heading"><span class="payment-avatar">${esc(p.nick[0])}</span><strong>${esc(p.nick)}</strong></div>`).join("")}
+  `;
 }
 
 function openForm() {
@@ -241,19 +253,25 @@ function renderMeetings(admin) {
     const badge = m.is_weekend
       ? `<span class="badge weekend">weekend · ${m.rate} zł/h</span>`
       : `<span class="badge week">tydzień · ${m.rate} zł/h</span>`;
-    const rows = PLAYERS.filter((p) => m[`${p.id}_present`]).map((p) => {
+    const playerCells = PLAYERS.map((p) => {
+      if (!m[`${p.id}_present`]) return `<div class="meeting-cell player-cell absent">—</div>`;
       const paid = !!m[`${p.id}_paid`];
-      return `<div class="payment-line">
-        <div class="player-payment"><span class="payment-avatar">${esc(p.nick[0])}</span><div><span class="payment-name">${esc(p.nick)}</span><span class="payment-meta">${p.hasMS ? `Multisport ×${Number(m[`${p.id}_ms`]) || 0}` : "bez Multisport"}</span></div></div>
-        <div class="payment-status"><strong>${fmt(c.costs[p.id])}</strong><label><input type="checkbox" data-paid="${m.id}:${p.id}" ${paid ? "checked" : ""} ${admin ? "" : "disabled"} /> <span class="${paid ? "paid" : "unpaid"}">${paid ? "opłacone" : "zaległe"}</span></label></div>
+      return `<div class="meeting-cell player-cell">
+        <strong>${fmt(c.costs[p.id])}</strong>
+        <button class="payment-state ${paid ? "paid" : "unpaid"}" data-paid="${m.id}:${p.id}" ${admin ? "" : "disabled"}>${paid ? "opłacone" : "zaległe"}</button>
+        <small>${p.hasMS ? `MS ×${Number(m[`${p.id}_ms`]) || 0}` : "bez MS"}</small>
       </div>`;
     }).join("");
     card.innerHTML = `
-      <div class="meeting-head">
-        <div><div class="date-lockup"><span class="date-number">${esc(date.day)}</span><span class="date-copy"><strong>${esc(date.weekday)}</strong>${esc(date.month)} ${date.year}</span></div>${badge}</div>
-        <div class="meeting-price">${fmt(c.total)}<small>${Number(m.courts)} kort × ${Number(m.hours)}h</small></div>
+      <div class="meeting-grid">
+        <div class="meeting-cell meeting-info">
+          <div class="date-lockup"><span class="date-number">${esc(date.day)}</span><span class="date-copy"><strong>${esc(date.weekday)}</strong>${esc(date.month)} ${date.year}</span></div>
+          ${badge}
+          <strong class="meeting-total">${fmt(c.total)}</strong>
+          <small>${Number(m.courts)} kort × ${Number(m.hours)}h</small>
+        </div>
+        ${playerCells}
       </div>
-      <div class="payment-lines">${rows || `<div class="payment-line">Brak obecnych?</div>`}</div>
       ${admin ? `<div class="row-actions">
         <button data-edit="${m.id}">edytuj spotkanie</button>
         <button data-del="${m.id}">usuń</button>
@@ -262,9 +280,9 @@ function renderMeetings(admin) {
     box.appendChild(card);
   }
   box.querySelectorAll("[data-paid]").forEach((cb) => {
-    cb.addEventListener("change", () => {
+    cb.addEventListener("click", () => {
       const [id, pid] = cb.dataset.paid.split(":");
-      togglePaid(id, pid, cb.checked);
+      togglePaid(id, pid, cb.classList.contains("unpaid"));
     });
   });
   box.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => startEdit(b.dataset.edit)));
@@ -282,11 +300,11 @@ function renderTotals(admin) {
     }
     totalDue = round2(totalDue + sum);
     const card = document.createElement("div");
-    card.className = "total-card";
+    card.className = "summary-cell";
     card.innerHTML = `
-      <div><strong>${esc(p.nick)}</strong><small>${count === 1 ? "1 zaległe spotkanie" : `${count} zaległych spotkań`}</small></div>
-      <div class="sum">${fmt(sum)}</div>
-      <button class="small" data-payall="${p.id}" ${admin && sum > 0 ? "" : "disabled"} title="${admin ? "Oznacz wszystko jako zapłacone" : "Tylko dla zalogowanego"}">zapłacił całość</button>
+      <strong>${fmt(sum)}</strong>
+      <small>${count === 1 ? "1 zaległe" : `${count} zaległych`}</small>
+      <button class="pay-all-button" data-payall="${p.id}" ${admin && sum > 0 ? "" : "disabled"}>zapłacił całość</button>
     `;
     box.appendChild(card);
   }
@@ -434,7 +452,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     b.addEventListener("click", () => setRate(b.dataset.rate));
   });
   $("#f-courts").addEventListener("input", updatePreview);
-  $("#btn-defaults").addEventListener("click", () => { applyDefaults(); updatePreview(); });
   document.querySelectorAll("#form-players input").forEach((i) => i.addEventListener("input", updatePreview));
   $("#meeting-form").addEventListener("submit", saveMeeting);
   $("#btn-cancel").addEventListener("click", () => { resetForm(); render(); });
