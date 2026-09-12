@@ -8,8 +8,8 @@ const RATE_WEEKEND = 65;
 const MS_DISCOUNT = 15;
 const PLAYERS = [
   { id: "dom", nick: "Dom", hasMS: false },
-  { id: "hy", nick: "Hy", hasMS: true },
   { id: "ber", nick: "Ber", hasMS: true },
+  { id: "hy", nick: "Hy", hasMS: true },
   { id: "pa", nick: "Pa", hasMS: true },
 ];
 
@@ -49,6 +49,8 @@ const dateInfo = (iso) => {
   };
 };
 const lockIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10M6 10h12v10H6zM12 14v2" /></svg>';
+const editIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.7 3.7 3.7-.7L18.8 7.7a2.1 2.1 0 0 0-3-3L4 16.5ZM14.7 6.7l2.6 2.6" /></svg>';
+const trashIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5" /></svg>';
 
 // Koszt liczony ZAWSZE z zapisanych pól (total snapshot, nie ze zmiany cennika).
 function calc(m) {
@@ -225,7 +227,7 @@ function renderLedgerHeader() {
   if (!header) return;
   header.innerHTML = `
     <div class="ledger-heading">Spotkanie</div>
-    ${PLAYERS.map((p) => `<div class="ledger-player-heading"><span class="payment-avatar">${esc(p.nick[0])}</span><strong>${esc(p.nick)}</strong></div>`).join("")}
+    ${PLAYERS.map((p) => `<div class="ledger-player-heading"><strong>${esc(p.nick)}</strong></div>`).join("")}
   `;
 }
 
@@ -251,14 +253,14 @@ function renderMeetings(admin) {
     const card = document.createElement("article");
     card.className = "meeting";
     const badge = m.is_weekend
-      ? `<span class="badge weekend">weekend · ${m.rate} zł/h</span>`
-      : `<span class="badge week">tydzień · ${m.rate} zł/h</span>`;
+      ? `<span class="badge weekend">weekend · ${m.rate}</span>`
+      : `<span class="badge week">tydzień · ${m.rate}</span>`;
     const playerCells = PLAYERS.map((p) => {
       if (!m[`${p.id}_present`]) return `<div class="meeting-cell player-cell absent">—</div>`;
       const paid = !!m[`${p.id}_paid`];
       return `<div class="meeting-cell player-cell">
         <strong>${fmt(c.costs[p.id])}</strong>
-        <button class="payment-state ${paid ? "paid" : "unpaid"}" data-paid="${m.id}:${p.id}" ${admin ? "" : "disabled"}>${paid ? "opłacone" : "zaległe"}</button>
+        <button class="payment-state ${paid ? "paid" : "unpaid"}" data-paid="${m.id}:${p.id}" aria-label="${paid ? "Opłacone" : "Zaległe"}" title="${paid ? "Opłacone" : "Zaległe"}" ${admin ? "" : "disabled"}>${paid ? "✓" : "⌛"}</button>
         <small>${p.hasMS ? `MS ×${Number(m[`${p.id}_ms`]) || 0}` : "bez MS"}</small>
       </div>`;
     }).join("");
@@ -273,8 +275,8 @@ function renderMeetings(admin) {
         ${playerCells}
       </div>
       ${admin ? `<div class="row-actions">
-        <button data-edit="${m.id}">edytuj spotkanie</button>
-        <button data-del="${m.id}">usuń</button>
+        <button data-edit="${m.id}" aria-label="Edytuj spotkanie" title="Edytuj spotkanie">${editIcon}</button>
+        <button data-del="${m.id}" aria-label="Usuń spotkanie" title="Usuń spotkanie">${trashIcon}</button>
       </div>` : ""}
     `;
     box.appendChild(card);
@@ -309,7 +311,22 @@ function renderTotals(admin) {
     box.appendChild(card);
   }
   $("#total-due").textContent = fmt(totalDue);
-  box.querySelectorAll("[data-payall]").forEach((b) => b.addEventListener("click", () => payAll(b.dataset.payall)));
+  box.querySelectorAll("[data-payall]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.confirm === "true") {
+      b.dataset.confirm = "false";
+      payAll(b.dataset.payall);
+      return;
+    }
+    b.dataset.confirm = "true";
+    b.classList.add("confirm");
+    b.textContent = "potwierdź";
+    window.setTimeout(() => {
+      if (!b.isConnected || b.dataset.confirm !== "true") return;
+      b.dataset.confirm = "false";
+      b.classList.remove("confirm");
+      b.textContent = "zapłacił całość";
+    }, 3500);
+  }));
 }
 
 // ---- Dane ----
@@ -332,10 +349,8 @@ async function togglePaid(id, pid, paid) {
 
 async function payAll(pid) {
   if (!session) return;
-  const p = PLAYERS.find((x) => x.id === pid);
   const unpaid = meetings.filter((m) => m[`${pid}_present`] && !m[`${pid}_paid`]);
   if (unpaid.length === 0) return;
-  if (!confirm(`Oznaczyć ${unpaid.length} zaległych spotkań gracza ${p.nick} jako zapłacone?`)) return;
   for (const m of unpaid) {
     const { error } = await supabase.from("meetings").update({ [`${pid}_paid`]: true }).eq("id", m.id);
     if (error) { showError(`Błąd przy „zapłacił całość”: ${error.message}`); await loadMeetings(); return; }

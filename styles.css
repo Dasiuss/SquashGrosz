@@ -30,17 +30,19 @@ button { transition: transform 150ms ease, box-shadow 150ms ease, background 150
 button:active { transform: translateY(1px); }
 
 .app-shell {
-  width: min(100% - 32px, 760px);
+  width: min(100% - 28px, 900px);
   margin: 0 auto;
   padding: 18px 0 64px;
 }
 
 .utility-bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  height: 38px;
-  margin-bottom: 42px;
+  height: 0;
+  margin-bottom: 0;
+  z-index: 2;
 }
 
 .wordmark {
@@ -63,6 +65,9 @@ button:active { transform: translateY(1px); }
 }
 
 .auth-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: inline-grid;
   width: 34px;
   height: 34px;
@@ -218,14 +223,14 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
   background: var(--card);
   box-shadow: 0 7px 22px rgba(43, 35, 27, 0.045);
 }
-.ledger-inner { min-width: 820px; }
+.ledger-inner { min-width: 860px; }
 .ledger-header,
 .meeting-grid,
 .summary-row { display: grid; grid-template-columns: minmax(210px, 1.4fr) repeat(4, minmax(125px, 1fr)); }
 .ledger-header { border-bottom: 2px solid var(--ink); background: #fbf7ef; }
 .ledger-heading,
-.ledger-player-heading { display: flex; min-height: 52px; align-items: center; padding: 10px 12px; border-right: 1px solid var(--line); color: var(--muted); font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
-.ledger-heading { padding-left: 16px; }
+.ledger-player-heading { display: flex; min-height: 52px; align-items: center; padding: 10px 8px; border-right: 1px solid var(--line); color: var(--muted); font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.ledger-heading { padding-left: 12px; }
 .ledger-player-heading { justify-content: flex-start; gap: 7px; color: var(--ink); }
 .ledger-player-heading:last-child { border-right: 0; }
 #meetings > p { margin: 0; padding: 16px; }
@@ -247,7 +252,7 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 }
 #meetings > .meeting:last-child { border-bottom: 0; }
 .meeting-grid { min-height: 112px; }
-.meeting-cell { min-width: 0; padding: 13px 12px; border-right: 1px solid var(--line); }
+.meeting-cell { min-width: 0; padding: 11px 8px; border-right: 1px solid var(--line); }
 .meeting-cell:last-child { border-right: 0; }
 .meeting-info { display: flex; flex-direction: column; align-items: flex-start; }
 .date-lockup { display: flex; align-items: center; gap: 10px; }
@@ -263,14 +268,14 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 .player-cell > strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: -0.03em; }
 .player-cell > small { color: var(--muted); font-size: 0.58rem; font-weight: 700; }
 .player-cell.absent { color: #b9b0a6; font-family: Georgia, "Times New Roman", serif; font-size: 1.2rem; }
-.payment-avatar { display: inline-grid; width: 27px; height: 27px; place-items: center; border-radius: 50%; color: var(--ink); background: #f1e8dd; font-size: 0.63rem; font-weight: 900; }
-.payment-state { width: auto; margin: 0; padding: 4px 7px; border: 1px solid transparent; border-radius: 99px; box-shadow: none; font-size: 0.58rem; font-weight: 900; line-height: 1.1; }
+.payment-state { display: inline-grid; width: 23px; height: 23px; margin: 0; padding: 0; place-items: center; border: 1px solid transparent; border-radius: 50%; box-shadow: none; font-size: 0.78rem; font-weight: 900; line-height: 1; }
 .payment-state.paid { border-color: rgba(50, 116, 84, 0.22); color: var(--green); background: #eaf4ed; }
-.payment-state.unpaid { border-color: rgba(239, 120, 93, 0.2); color: var(--coral); background: #fff1ed; }
+.payment-state.unpaid { border-color: rgba(190, 150, 40, 0.25); color: #8c6b12; background: #fff5c7; }
 .payment-state:not(:disabled):hover { border-color: var(--ink); color: var(--ink); background: var(--lime); }
 .payment-state:disabled { opacity: 1; cursor: default; }
-.row-actions { display: flex; gap: 8px; margin-top: 0; padding: 10px 16px; border-top: 1px solid var(--line); }
-.row-actions button { margin: 0; padding: 5px 9px; border: 0; color: var(--muted); background: transparent; box-shadow: none; font-size: 0.66rem; font-weight: 800; }
+.row-actions { display: flex; gap: 5px; margin-top: 0; padding: 7px 8px; border-top: 1px solid var(--line); }
+.row-actions button { display: inline-grid; width: 28px; height: 28px; margin: 0; padding: 6px; place-items: center; border: 0; color: var(--muted); background: transparent; box-shadow: none; }
+.row-actions button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 .row-actions button:hover { color: var(--ink); background: #f5efe8; }
 
 .totals { display: contents; }
@@ -278,8 +283,9 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 .summary-cell:last-child { border-right: 0; }
 .summary-cell > strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: -0.03em; }
 .summary-cell > small { color: var(--muted); font-size: 0.58rem; font-weight: 700; }
-.pay-all-button { width: auto; margin: 0; padding: 4px 7px; border: 1px solid var(--line); border-radius: 99px; color: var(--lime-dark); background: transparent; box-shadow: none; font-size: 0.56rem; font-weight: 900; }
+.pay-all-button { width: auto; margin: 0; padding: 4px 7px; border: 1px solid var(--line); border-radius: 99px; color: var(--lime-dark); background: transparent; box-shadow: none; font-size: 0.56rem; font-weight: 900; white-space: nowrap; }
 .pay-all-button:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); background: var(--lime); }
+.pay-all-button.confirm { border-color: #c49d27; color: #6c5100; background: #f5d85f; }
 .pay-all-button:disabled { display: none; }
 
 dialog { border: 0; border-radius: 20px; background: var(--card); box-shadow: 0 24px 80px rgba(24, 32, 31, 0.25); }
@@ -292,14 +298,46 @@ dialog form button { border: 0; border-radius: 11px; background: var(--ink); }
 
 @media (min-width: 680px) {
   .app-shell { padding-top: 24px; }
-  .utility-bar { margin-bottom: 62px; }
+  .utility-bar { margin-bottom: 0; }
   section { margin-bottom: 70px; }
   #meetings > p { padding: 20px; }
   .summary-label { padding-left: 20px; padding-right: 20px; }
 }
 
+@media (max-width: 679px) {
+  .ledger-inner { min-width: 350px; }
+  .ledger-header,
+  .meeting-grid,
+  .summary-row { grid-template-columns: minmax(90px, 1.2fr) repeat(4, minmax(65px, 1fr)); }
+  .ledger-heading,
+  .ledger-player-heading { min-height: 42px; padding: 7px 4px; font-size: 0.5rem; letter-spacing: 0.04em; }
+  .ledger-heading { padding-left: 7px; }
+  .meeting-grid { min-height: 94px; }
+  .meeting-cell { padding: 8px 4px; }
+  .date-lockup { gap: 4px; }
+  .date-number { font-size: 1.25rem; }
+  .date-copy { font-size: 0.5rem; letter-spacing: 0.01em; }
+  .date-copy strong { font-size: 0.56rem; }
+  .badge { margin-top: 4px; padding: 2px 4px; font-size: 0.43rem; letter-spacing: 0.03em; }
+  .meeting-total { font-size: 0.82rem; }
+  .meeting-info > small { font-size: 0.5rem; }
+  .player-cell { gap: 3px; }
+  .player-cell > strong { font-size: 0.82rem; }
+  .player-cell > small { font-size: 0.46rem; }
+  .payment-state { width: 20px; height: 20px; font-size: 0.67rem; }
+  .summary-label,
+  .summary-cell { min-height: 78px; padding-top: 8px; padding-bottom: 8px; }
+  .summary-label { padding-left: 7px; padding-right: 4px; font-size: 0.48rem; letter-spacing: 0.04em; }
+  .summary-label strong { font-size: 1rem; }
+  .summary-cell { padding-left: 4px; padding-right: 4px; }
+  .summary-cell > strong { font-size: 0.82rem; }
+  .summary-cell > small { font-size: 0.46rem; }
+  .pay-all-button { padding: 3px 4px; font-size: 0.46rem; }
+  .row-actions { padding-left: 4px; padding-right: 4px; }
+}
+
 @media (max-width: 410px) {
-  .app-shell { width: min(100% - 22px, 760px); }
+  .app-shell { width: min(100% - 22px, 900px); }
   .form-topline { grid-template-columns: 1fr; gap: 9px; }
   .rate-toggle { grid-template-columns: 1fr; }
   .player-row { padding-left: 7px; padding-right: 7px; }
