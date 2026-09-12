@@ -50,7 +50,7 @@ const dateInfo = (iso) => {
 };
 const lockIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10M6 10h12v10H6zM12 14v2" /></svg>';
 const kebabIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>';
-const batIcon = '<span class="bat-icon" aria-hidden="true">🦇</span>';
+const batIcon = '<span class="bat-icon" aria-hidden="true">💰</span>';
 
 // Koszt liczony ZAWSZE z zapisanych pól (total snapshot, nie ze zmiany cennika).
 function calc(m) {
