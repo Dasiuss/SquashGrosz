@@ -19,6 +19,7 @@ const $ = (s) => document.querySelector(s);
 let session = null;
 let meetings = [];
 let editingId = null;
+let formOpen = false;
 
 // ---- Helpery ----
 const todayISO = () => {
@@ -72,22 +73,51 @@ function showError(msg) {
 }
 
 // ---- Formularz: budowa wierszy graczy ----
+function syncRowSelected() {
+  for (const p of PLAYERS) {
+    const cb = $(`#fp-${p.id}`);
+    const row = cb?.closest(".player-row");
+    if (row) row.classList.toggle("selected", !!cb?.checked);
+  }
+}
+
 function buildFormPlayers() {
   const box = $("#form-players");
   box.innerHTML = "";
   for (const p of PLAYERS) {
     const row = document.createElement("div");
     row.className = "player-row";
+    row.setAttribute("role", "button");
+    row.setAttribute("tabindex", "0");
+    row.setAttribute("aria-label", `Zaznacz obecność: ${p.nick}`);
+    row.dataset.player = p.id;
     row.innerHTML = `
-      <label class="player-select"><input type="checkbox" id="fp-${p.id}" /> <span class="player-avatar">${esc(p.nick[0])}</span><span class="player-name">${esc(p.nick)}</span></label>
+      <label class="player-select"><input type="checkbox" id="fp-${p.id}" tabindex="-1" /> <span class="player-avatar">${esc(p.nick[0])}</span><span class="player-name">${esc(p.nick)}</span></label>
       ${p.hasMS
         ? `<label class="ms-control"><span>MS</span><input type="number" id="fm-${p.id}" min="0" max="5" step="1" value="0" aria-label="Liczba odbić MS: ${esc(p.nick)}" /></label>`
         : `<span class="ms-tag">bez MS</span><input type="hidden" id="fm-${p.id}" value="0" />`}
     `;
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".ms-control") || e.target.closest('input[type="number"]')) return;
+      if (e.target.closest('input[type="checkbox"]')) return;
+      const cb = row.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    row.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      if (e.target.closest('input[type="number"]')) return;
+      e.preventDefault();
+      const cb = row.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event("change", { bubbles: true }));
+    });
     box.appendChild(row);
   }
   for (const p of PLAYERS) {
-    $(`#fp-${p.id}`).addEventListener("change", () => { syncMsDisabled(); applyDefaults(); updatePreview(); });
+    $(`#fp-${p.id}`).addEventListener("change", () => { syncRowSelected(); syncMsDisabled(); applyDefaults(); updatePreview(); });
   }
   const hours = $("#f-hours");
   if (hours && !hours.dataset.bound) {
@@ -115,6 +145,25 @@ function syncMsDisabled() {
     const inp = $(`#fm-${p.id}`);
     if (inp) inp.disabled = !on;
   }
+}
+
+function syncRateToggle() {
+  const val = $("#f-rate-type")?.value || "week";
+  document.querySelectorAll(".rate-toggle button").forEach((b) => {
+    const active = b.dataset.rate === val;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function setRate(val) {
+  const input = $("#f-rate-type");
+  if (input) {
+    input.value = val;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  syncRateToggle();
+  updatePreview();
 }
 
 // Defaulty: 2 os -> 1 kort/1h, 3 os -> 1 kort/1.5h, 4 os -> 2 korty/1h. MS = ceil(godzin).
@@ -152,12 +201,32 @@ function updatePreview() {
 // ---- Render ----
 function render() {
   const admin = !!session;
-  $("#admin-panel").hidden = !admin;
-  $("#auth-btn").innerHTML = lockIcon;
-  $("#auth-btn").title = admin ? "Wyloguj" : "Zaloguj jako administrator";
-  $("#auth-btn").setAttribute("aria-label", admin ? "Wyloguj" : "Zaloguj jako administrator");
+  const showForm = admin && (formOpen || !!editingId);
+  $("#admin-panel").hidden = !showForm;
+  const actions = $("#admin-actions");
+  if (actions) actions.hidden = !admin || showForm;
+  const authBtn = $("#auth-btn");
+  if (authBtn) {
+    authBtn.innerHTML = lockIcon;
+    authBtn.title = "Zaloguj jako administrator";
+    authBtn.setAttribute("aria-label", "Zaloguj jako administrator");
+    // brak wylogowania: po zalogowaniu ikona znika
+    authBtn.hidden = admin;
+  }
   renderMeetings(admin);
   renderTotals(admin);
+}
+
+function openForm() {
+  formOpen = true;
+  render();
+  $("#admin-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeForm() {
+  formOpen = false;
+  editingId = null;
+  render();
 }
 
 function renderMeetings(admin) {
@@ -261,30 +330,37 @@ function startEdit(id) {
   const m = meetings.find((x) => x.id === id);
   if (!m) return;
   editingId = id;
+  formOpen = true;
   $("#form-title").textContent = `Edycja: ${fmtDate(m.game_date)}`;
   $("#f-date").value = m.game_date;
   $("#f-rate-type").value = m.is_weekend ? "weekend" : "week";
+  syncRateToggle();
   $("#f-courts").value = m.courts;
   $("#f-hours").value = m.hours;
   for (const p of PLAYERS) {
     $(`#fp-${p.id}`).checked = !!m[`${p.id}_present`];
     $(`#fm-${p.id}`).value = Number(m[`${p.id}_ms`]) || 0;
   }
+  syncRowSelected();
   syncMsDisabled();
   updatePreview();
   $("#btn-save").textContent = "Zapisz zmiany";
   $("#btn-cancel").hidden = false;
+  render();
   $("#admin-panel").scrollIntoView({ behavior: "smooth" });
 }
 
 function resetForm() {
   editingId = null;
+  formOpen = false;
   $("#form-title").textContent = "Nowe spotkanie";
   $("#f-date").value = todayISO();
   $("#f-rate-type").value = isWeekendDate($("#f-date").value) ? "weekend" : "week";
+  syncRateToggle();
   $("#f-courts").value = 1;
   $("#f-hours").value = 1;
   for (const p of PLAYERS) { $(`#fp-${p.id}`).checked = false; $(`#fm-${p.id}`).value = 0; }
+  syncRowSelected();
   syncMsDisabled();
   updatePreview();
   $("#btn-save").textContent = "Dodaj spotkanie";
@@ -347,20 +423,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   buildFormPlayers();
   $("#f-date").value = todayISO();
   $("#f-rate-type").value = isWeekendDate($("#f-date").value) ? "weekend" : "week";
+  syncRateToggle();
   $("#f-date").addEventListener("change", () => {
     $("#f-rate-type").value = isWeekendDate($("#f-date").value) ? "weekend" : "week";
+    syncRateToggle();
     updatePreview();
   });
   $("#f-rate-type").addEventListener("change", updatePreview);
+  document.querySelectorAll(".rate-toggle button").forEach((b) => {
+    b.addEventListener("click", () => setRate(b.dataset.rate));
+  });
   $("#f-courts").addEventListener("input", updatePreview);
   $("#btn-defaults").addEventListener("click", () => { applyDefaults(); updatePreview(); });
   document.querySelectorAll("#form-players input").forEach((i) => i.addEventListener("input", updatePreview));
   $("#meeting-form").addEventListener("submit", saveMeeting);
-  $("#btn-cancel").addEventListener("click", resetForm);
+  $("#btn-cancel").addEventListener("click", () => { resetForm(); render(); });
+  $("#btn-show-form")?.addEventListener("click", () => {
+    resetForm();
+    openForm();
+  });
 
   const dlg = $("#login-dialog");
   $("#auth-btn").addEventListener("click", async () => {
-    if (session) { await supabase.auth.signOut(); return; }
+    if (session) return;
     $("#login-error").hidden = true;
     dlg.showModal();
   });
@@ -381,6 +466,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#login-pass").value = "";
   });
 
+  syncRowSelected();
   syncMsDisabled();
   updatePreview();
   await initAuth();

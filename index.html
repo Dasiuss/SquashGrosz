@@ -22,6 +22,10 @@
 
     <div id="error" class="error" hidden></div>
 
+    <div id="admin-actions" hidden>
+      <button type="button" id="btn-show-form" class="primary-action">+ dodaj spotkanie</button>
+    </div>
+
     <section id="admin-panel" hidden>
       <div class="section-kicker">panel gospodarza</div>
       <h1 id="form-title">Nowe spotkanie</h1>
@@ -31,14 +35,25 @@
           <label>Data gry
             <input type="date" id="f-date" required />
           </label>
-          <label>Stawka
-            <select id="f-rate-type">
-              <option value="week">Tydzień · 83 zł / kort / h</option>
-              <option value="weekend">Weekend · 65 zł / kort / h</option>
-            </select>
+          <div class="rate-field">
+            <span class="rate-label">Stawka</span>
+            <div class="rate-toggle" role="group" aria-label="Wybierz stawkę">
+              <button type="button" data-rate="week" id="rate-week" aria-pressed="true">Tydzień · 83 zł</button>
+              <button type="button" data-rate="weekend" id="rate-weekend" aria-pressed="false">Weekend · 65 zł</button>
+            </div>
+            <input type="hidden" id="f-rate-type" value="week" />
             <small id="rate-hint">tryb wykryty z daty — możesz zmienić ręcznie</small>
-          </label>
           </div>
+          </div>
+        </div>
+
+        <fieldset>
+          <legend>Kto gra?</legend>
+          <small class="field-help">Zaznacz obecnych. Multisport odejmuje 15 zł za odbicie.</small>
+          <div class="players" id="form-players"></div>
+        </fieldset>
+
+        <div class="form-card">
           <div class="grid form-topline">
           <label>Liczba kortów
             <input type="number" id="f-courts" min="1" max="3" step="1" value="1" required />
@@ -50,17 +65,11 @@
           <button type="button" id="btn-defaults" class="text-button">ustaw typowy układ</button>
         </div>
 
-        <fieldset>
-          <legend>Kto gra?</legend>
-          <small class="field-help">Zaznacz obecnych. Multisport odejmuje 15 zł za odbicie.</small>
-          <div class="players" id="form-players"></div>
-        </fieldset>
-
         <div id="preview" class="preview" aria-live="polite"></div>
 
         <div class="form-actions">
           <button type="submit" id="btn-save" class="primary-action">Dodaj spotkanie</button>
-          <button type="button" id="btn-cancel" class="text-button" hidden>Anuluj edycję</button>
+          <button type="button" id="btn-cancel" class="text-button" hidden>Anuluj</button>
         </div>
       </form>
     </section>
@@ -73,19 +82,13 @@
         </div>
         <span class="section-mark">01</span>
       </div>
-      <div id="meetings"><p aria-busy="true">Ładowanie…</p></div>
-    </section>
-
-    <section>
-      <div class="section-heading">
-        <div>
-          <div class="section-kicker">stan rozliczeń</div>
-          <h2>Zaległości</h2>
+      <div class="ledger">
+        <div id="meetings"><p aria-busy="true">Ładowanie…</p></div>
+        <div class="ledger-footer">
+          <div class="debt-total"><span>łącznie do zebrania</span><strong id="total-due">0,00 zł</strong></div>
+          <div id="totals" class="totals"></div>
         </div>
-        <span class="section-mark">02</span>
       </div>
-      <div class="debt-total"><span>łącznie do zebrania</span><strong id="total-due">0,00 zł</strong></div>
-      <div id="totals" class="totals"></div>
     </section>
   </main>
 
