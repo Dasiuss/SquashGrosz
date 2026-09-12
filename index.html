@@ -62,6 +62,7 @@
         <div class="form-actions">
           <button type="submit" id="btn-save" class="primary-action">Dodaj spotkanie</button>
           <button type="button" id="btn-cancel" class="text-button" hidden>Anuluj</button>
+          <button type="button" id="btn-delete-edit" class="delete-action" hidden>usuń</button>
         </div>
       </form>
     </section>
@@ -72,13 +73,19 @@
         <button type="button" id="btn-show-form" class="add-meeting-button" hidden>+ dodaj spotkanie</button>
       </div>
       <div class="ledger">
-        <div class="ledger-inner">
-          <div id="ledger-header" class="ledger-header"></div>
-          <div id="meetings"><p aria-busy="true">Ładowanie…</p></div>
-          <div class="ledger-footer">
-            <div class="summary-row">
-              <div class="summary-label"><span>Łącznie</span><strong id="total-due">0,00 zł</strong></div>
-              <div id="totals" class="totals"></div>
+        <div class="ledger-scroll">
+          <div class="ledger-inner">
+            <div id="ledger-header" class="ledger-header"></div>
+            <div id="meetings"><p aria-busy="true">Ładowanie…</p></div>
+          </div>
+        </div>
+        <div class="ledger-footer">
+          <div class="ledger-scroll">
+            <div class="ledger-inner">
+              <div class="summary-row">
+                <div class="summary-label"><span>Łącznie</span><strong id="total-due">0,00 zł</strong></div>
+                <div id="totals" class="totals"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -90,7 +97,7 @@
     <article>
       <header>
         <strong>Logowanie</strong>
-        <button id="login-close" class="close" aria-label="Zamknij" rel="prev">✕</button>
+        <button id="login-close" class="close" aria-label="Zamknij" rel="prev"></button>
       </header>
       <form id="login-form" method="dialog">
         <label>Email

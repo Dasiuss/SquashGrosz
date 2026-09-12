@@ -49,8 +49,8 @@ const dateInfo = (iso) => {
   };
 };
 const lockIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10M6 10h12v10H6zM12 14v2" /></svg>';
-const editIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.7 3.7 3.7-.7L18.8 7.7a2.1 2.1 0 0 0-3-3L4 16.5ZM14.7 6.7l2.6 2.6" /></svg>';
-const trashIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5" /></svg>';
+const kebabIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>';
+const batIcon = '<span class="bat-icon" aria-hidden="true">🦇</span>';
 
 // Koszt liczony ZAWSZE z zapisanych pól (total snapshot, nie ze zmiany cennika).
 function calc(m) {
@@ -260,8 +260,10 @@ function renderMeetings(admin) {
       const paid = !!m[`${p.id}_paid`];
       return `<div class="meeting-cell player-cell">
         <strong>${fmt(c.costs[p.id])}</strong>
-        <button class="payment-state ${paid ? "paid" : "unpaid"}" data-paid="${m.id}:${p.id}" aria-label="${paid ? "Opłacone" : "Zaległe"}" title="${paid ? "Opłacone" : "Zaległe"}" ${admin ? "" : "disabled"}>${paid ? "✓" : "⌛"}</button>
-        <small>${p.hasMS ? `MS ×${Number(m[`${p.id}_ms`]) || 0}` : "bez MS"}</small>
+        <div class="player-meta-row">
+          <small>${p.hasMS ? `${Number(m[`${p.id}_ms`]) || 0}MS` : "bez MS"}</small>
+          <button class="payment-state ${paid ? "paid" : "unpaid"}" data-paid="${m.id}:${p.id}" aria-label="${paid ? "Opłacone" : "Zaległe"}" title="${paid ? "Opłacone" : "Zaległe"}" ${admin ? "" : "disabled"}>${paid ? "✓" : batIcon}</button>
+        </div>
       </div>`;
     }).join("");
     card.innerHTML = `
@@ -271,13 +273,10 @@ function renderMeetings(admin) {
           ${badge}
           <strong class="meeting-total">${fmt(c.total)}</strong>
           <small>${Number(m.courts)} kort × ${Number(m.hours)}h</small>
+          ${admin ? `<button class="meeting-menu" data-edit="${m.id}" aria-label="Edytuj spotkanie" title="Edytuj spotkanie">${kebabIcon}</button>` : ""}
         </div>
         ${playerCells}
       </div>
-      ${admin ? `<div class="row-actions">
-        <button data-edit="${m.id}" aria-label="Edytuj spotkanie" title="Edytuj spotkanie">${editIcon}</button>
-        <button data-del="${m.id}" aria-label="Usuń spotkanie" title="Usuń spotkanie">${trashIcon}</button>
-      </div>` : ""}
     `;
     box.appendChild(card);
   }
@@ -288,7 +287,6 @@ function renderMeetings(admin) {
     });
   });
   box.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => startEdit(b.dataset.edit)));
-  box.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => removeMeeting(b.dataset.del)));
 }
 
 function renderTotals(admin) {
@@ -306,7 +304,7 @@ function renderTotals(admin) {
     card.innerHTML = `
       <strong>${fmt(sum)}</strong>
       <small>${count === 1 ? "1 zaległe" : `${count} zaległych`}</small>
-      <button class="pay-all-button" data-payall="${p.id}" ${admin && sum > 0 ? "" : "disabled"}>zapłacił całość</button>
+      <button class="pay-all-button" data-payall="${p.id}" ${admin && sum > 0 ? "" : "disabled"}>Zapłacone</button>
     `;
     box.appendChild(card);
   }
@@ -324,7 +322,7 @@ function renderTotals(admin) {
       if (!b.isConnected || b.dataset.confirm !== "true") return;
       b.dataset.confirm = "false";
       b.classList.remove("confirm");
-      b.textContent = "zapłacił całość";
+      b.textContent = "Zapłacone";
     }, 3500);
   }));
 }
@@ -353,7 +351,7 @@ async function payAll(pid) {
   if (unpaid.length === 0) return;
   for (const m of unpaid) {
     const { error } = await supabase.from("meetings").update({ [`${pid}_paid`]: true }).eq("id", m.id);
-    if (error) { showError(`Błąd przy „zapłacił całość”: ${error.message}`); await loadMeetings(); return; }
+    if (error) { showError(`Błąd przy oznaczaniu płatności: ${error.message}`); await loadMeetings(); return; }
     m[`${pid}_paid`] = true;
   }
   render();
@@ -379,6 +377,10 @@ function startEdit(id) {
   updatePreview();
   $("#btn-save").textContent = "Zapisz zmiany";
   $("#btn-cancel").hidden = false;
+  $("#btn-delete-edit").hidden = false;
+  $("#btn-delete-edit").dataset.confirm = "false";
+  $("#btn-delete-edit").classList.remove("confirm");
+  $("#btn-delete-edit").textContent = "usuń";
   render();
   $("#admin-panel").scrollIntoView({ behavior: "smooth" });
 }
@@ -398,14 +400,21 @@ function resetForm() {
   updatePreview();
   $("#btn-save").textContent = "Dodaj spotkanie";
   $("#btn-cancel").hidden = true;
+  $("#btn-delete-edit").hidden = true;
+  $("#btn-delete-edit").dataset.confirm = "false";
+  $("#btn-delete-edit").classList.remove("confirm");
+  $("#btn-delete-edit").textContent = "usuń";
 }
 
 async function removeMeeting(id) {
   if (!session) return;
-  if (!confirm("Usunąć to spotkanie? Tej operacji nie da się cofnąć.")) return;
   const { error } = await supabase.from("meetings").delete().eq("id", id);
   if (error) { showError(`Błąd usuwania: ${error.message}`); return; }
   meetings = meetings.filter((m) => m.id !== id);
+  if (editingId === id) {
+    editingId = null;
+    formOpen = false;
+  }
   render();
 }
 
@@ -470,6 +479,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll("#form-players input").forEach((i) => i.addEventListener("input", updatePreview));
   $("#meeting-form").addEventListener("submit", saveMeeting);
   $("#btn-cancel").addEventListener("click", () => { resetForm(); render(); });
+  $("#btn-delete-edit").addEventListener("click", async () => {
+    if (!editingId) return;
+    const button = $("#btn-delete-edit");
+    if (button.dataset.confirm === "true") {
+      button.disabled = true;
+      await removeMeeting(editingId);
+      button.disabled = false;
+      return;
+    }
+    button.dataset.confirm = "true";
+    button.classList.add("confirm");
+    button.textContent = "potwierdź";
+    window.setTimeout(() => {
+      if (!button.isConnected || button.dataset.confirm !== "true") return;
+      button.dataset.confirm = "false";
+      button.classList.remove("confirm");
+      button.textContent = "usuń";
+    }, 3500);
+  });
   $("#btn-show-form")?.addEventListener("click", () => {
     resetForm();
     openForm();

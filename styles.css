@@ -215,28 +215,37 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 .form-actions { display: flex; align-items: center; gap: 16px; }
 .primary-action { flex: 1; margin: 0; border: 0; border-radius: 12px; color: #fefdf9; background: var(--ink); box-shadow: 0 8px 18px rgba(24, 32, 31, 0.14); font-weight: 800; }
 .primary-action:hover { background: #303b38; box-shadow: 0 10px 22px rgba(24, 32, 31, 0.19); }
+.delete-action { width: auto; margin: 0; padding: 7px 10px; border: 1px solid rgba(239, 120, 93, 0.35); border-radius: 10px; color: #b94d3b; background: #fff1ed; box-shadow: none; font-size: 0.68rem; font-weight: 900; }
+.delete-action:hover { border-color: var(--coral); color: #fff; background: var(--coral); }
+.delete-action.confirm { border-color: var(--coral); color: #fff; background: var(--coral); }
 
 .ledger {
-  overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--card);
   box-shadow: 0 7px 22px rgba(43, 35, 27, 0.045);
 }
+.ledger-scroll { overflow-x: auto; }
 .ledger-inner { min-width: 860px; }
 .ledger-header,
 .meeting-grid,
-.summary-row { display: grid; grid-template-columns: minmax(210px, 1.4fr) repeat(4, minmax(125px, 1fr)); }
+.summary-row { display: grid; grid-template-columns: minmax(190px, 1.25fr) repeat(4, minmax(125px, 1fr)); }
 .ledger-header { border-bottom: 2px solid var(--ink); background: #fbf7ef; }
 .ledger-heading,
-.ledger-player-heading { display: flex; min-height: 52px; align-items: center; padding: 10px 8px; border-right: 1px solid var(--line); color: var(--muted); font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.ledger-player-heading { display: flex; min-height: 52px; align-items: center; padding: 10px 8px; border-right: 1px solid var(--line); color: var(--muted); font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.ledger-heading { font-size: 0.75rem; }
+.ledger-player-heading { font-size: 1rem; letter-spacing: 0.02em; }
 .ledger-heading { padding-left: 12px; }
 .ledger-player-heading { justify-content: flex-start; gap: 7px; color: var(--ink); }
 .ledger-player-heading:last-child { border-right: 0; }
 #meetings > p { margin: 0; padding: 16px; }
 .ledger-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
   border-top: 2px solid var(--ink);
   background: #fbf7ef;
+  box-shadow: 0 -8px 20px rgba(43, 35, 27, 0.08);
 }
 .summary-label { display: flex; min-height: 94px; flex-direction: column; justify-content: center; gap: 5px; padding: 12px 16px; border-right: 1px solid var(--line); color: var(--muted); font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
 .summary-label strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.45rem; letter-spacing: -0.05em; text-transform: none; }
@@ -254,7 +263,7 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 .meeting-grid { min-height: 112px; }
 .meeting-cell { min-width: 0; padding: 11px 8px; border-right: 1px solid var(--line); }
 .meeting-cell:last-child { border-right: 0; }
-.meeting-info { display: flex; flex-direction: column; align-items: flex-start; }
+.meeting-info { position: relative; display: flex; flex-direction: column; align-items: flex-start; }
 .date-lockup { display: flex; align-items: center; gap: 10px; }
 .date-number { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.65rem; font-weight: 700; line-height: 0.9; letter-spacing: -0.08em; }
 .date-copy { color: var(--muted); font-size: 0.68rem; font-weight: 800; line-height: 1.4; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -266,17 +275,18 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 .meeting-info > small { color: var(--muted); font-size: 0.6rem; font-weight: 700; }
 .player-cell { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; }
 .player-cell > strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: -0.03em; }
-.player-cell > small { color: var(--muted); font-size: 0.58rem; font-weight: 700; }
+.player-meta-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 3px; }
+.player-meta-row small { color: var(--muted); font-size: 0.58rem; font-weight: 700; }
 .player-cell.absent { color: #b9b0a6; font-family: Georgia, "Times New Roman", serif; font-size: 1.2rem; }
+.meeting-menu { position: absolute; right: 4px; bottom: 6px; display: inline-grid; width: 22px; height: 22px; margin: 0; padding: 4px; place-items: center; border: 0; border-radius: 50%; color: var(--muted); background: transparent; box-shadow: none; }
+.meeting-menu:hover { color: var(--ink); background: #f5efe8; }
+.meeting-menu svg { width: 14px; height: 14px; fill: currentColor; }
 .payment-state { display: inline-grid; width: 23px; height: 23px; margin: 0; padding: 0; place-items: center; border: 1px solid transparent; border-radius: 50%; box-shadow: none; font-size: 0.78rem; font-weight: 900; line-height: 1; }
 .payment-state.paid { border-color: rgba(50, 116, 84, 0.22); color: var(--green); background: #eaf4ed; }
 .payment-state.unpaid { border-color: rgba(190, 150, 40, 0.25); color: #8c6b12; background: #fff5c7; }
 .payment-state:not(:disabled):hover { border-color: var(--ink); color: var(--ink); background: var(--lime); }
 .payment-state:disabled { opacity: 1; cursor: default; }
-.row-actions { display: flex; gap: 5px; margin-top: 0; padding: 7px 8px; border-top: 1px solid var(--line); }
-.row-actions button { display: inline-grid; width: 28px; height: 28px; margin: 0; padding: 6px; place-items: center; border: 0; color: var(--muted); background: transparent; box-shadow: none; }
-.row-actions button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
-.row-actions button:hover { color: var(--ink); background: #f5efe8; }
+.bat-icon { display: inline-block; font-size: 0.72rem; line-height: 1; }
 
 .totals { display: contents; }
 .summary-cell { display: flex; min-height: 94px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding: 12px; border-right: 1px solid var(--line); }
@@ -305,12 +315,15 @@ dialog form button { border: 0; border-radius: 11px; background: var(--ink); }
 }
 
 @media (max-width: 679px) {
+  .ledger { width: calc(100% + 28px); margin-left: -14px; border-right: 0; border-left: 0; border-radius: 0; }
   .ledger-inner { min-width: 350px; }
   .ledger-header,
   .meeting-grid,
-  .summary-row { grid-template-columns: minmax(90px, 1.2fr) repeat(4, minmax(65px, 1fr)); }
+  .summary-row { grid-template-columns: minmax(82px, 1.1fr) repeat(4, minmax(65px, 1fr)); }
   .ledger-heading,
-  .ledger-player-heading { min-height: 42px; padding: 7px 4px; font-size: 0.5rem; letter-spacing: 0.04em; }
+  .ledger-player-heading { min-height: 42px; padding: 7px 4px; letter-spacing: 0.04em; }
+  .ledger-heading { font-size: 0.6rem; }
+  .ledger-player-heading { font-size: 0.8rem; }
   .ledger-heading { padding-left: 7px; }
   .meeting-grid { min-height: 94px; }
   .meeting-cell { padding: 8px 4px; }
@@ -323,8 +336,9 @@ dialog form button { border: 0; border-radius: 11px; background: var(--ink); }
   .meeting-info > small { font-size: 0.5rem; }
   .player-cell { gap: 3px; }
   .player-cell > strong { font-size: 0.82rem; }
-  .player-cell > small { font-size: 0.46rem; }
+  .player-meta-row small { font-size: 0.46rem; }
   .payment-state { width: 20px; height: 20px; font-size: 0.67rem; }
+  .bat-icon { font-size: 0.6rem; }
   .summary-label,
   .summary-cell { min-height: 78px; padding-top: 8px; padding-bottom: 8px; }
   .summary-label { padding-left: 7px; padding-right: 4px; font-size: 0.48rem; letter-spacing: 0.04em; }
@@ -333,11 +347,12 @@ dialog form button { border: 0; border-radius: 11px; background: var(--ink); }
   .summary-cell > strong { font-size: 0.82rem; }
   .summary-cell > small { font-size: 0.46rem; }
   .pay-all-button { padding: 3px 4px; font-size: 0.46rem; }
-  .row-actions { padding-left: 4px; padding-right: 4px; }
+  .meeting-menu { right: 2px; bottom: 3px; }
 }
 
 @media (max-width: 410px) {
   .app-shell { width: min(100% - 22px, 900px); }
+  .ledger { width: calc(100% + 22px); margin-left: -11px; border-right: 0; border-left: 0; border-radius: 0; }
   .form-topline { grid-template-columns: 1fr; gap: 9px; }
   .rate-toggle { grid-template-columns: 1fr; }
   .player-row { padding-left: 7px; padding-right: 7px; }
