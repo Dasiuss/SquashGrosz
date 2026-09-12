@@ -1,0 +1,23 @@
+{
+  "name": "SquashGrosz — rozliczenia squasha",
+  "short_name": "SquashGrosz",
+  "description": "Rozliczenia kortów do squasha: obecność, godziny, Multisport, zaległości.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

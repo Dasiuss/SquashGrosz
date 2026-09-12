@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SquashGrosz — rozliczenia squasha</title>
+  <meta name="description" content="Rozliczenia kortów do squasha: kto był, ile godzin, Multisport, zaległości." />
+  <meta name="theme-color" content="#f4efe7" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="./ikona.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <div class="utility-bar">
+      <button id="auth-btn" class="auth-icon" title="Zaloguj jako administrator" aria-label="Zaloguj jako administrator">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10M6 10h12v10H6zM12 14v2" /></svg>
+      </button>
+    </div>
+
+    <div id="error" class="error" hidden></div>
+
+    <section id="admin-panel" hidden>
+      <div class="section-kicker">panel gospodarza</div>
+      <h1 id="form-title">Nowe spotkanie</h1>
+      <form id="meeting-form">
+        <div class="form-card">
+          <div class="grid form-topline">
+          <label>Data gry
+            <input type="date" id="f-date" required />
+          </label>
+          <label>Stawka
+            <select id="f-rate-type">
+              <option value="week">Tydzień · 83 zł / kort / h</option>
+              <option value="weekend">Weekend · 65 zł / kort / h</option>
+            </select>
+            <small id="rate-hint">tryb wykryty z daty — możesz zmienić ręcznie</small>
+          </label>
+          </div>
+          <div class="grid form-topline">
+          <label>Liczba kortów
+            <input type="number" id="f-courts" min="1" max="3" step="1" value="1" required />
+          </label>
+          <label>Godziny
+            <input type="number" id="f-hours" min="0.5" max="5" step="0.5" value="1" required />
+          </label>
+          </div>
+          <button type="button" id="btn-defaults" class="text-button">ustaw typowy układ</button>
+        </div>
+
+        <fieldset>
+          <legend>Kto gra?</legend>
+          <small class="field-help">Zaznacz obecnych. Multisport odejmuje 15 zł za odbicie.</small>
+          <div class="players" id="form-players"></div>
+        </fieldset>
+
+        <div id="preview" class="preview" aria-live="polite"></div>
+
+        <div class="form-actions">
+          <button type="submit" id="btn-save" class="primary-action">Dodaj spotkanie</button>
+          <button type="button" id="btn-cancel" class="text-button" hidden>Anuluj edycję</button>
+        </div>
+      </form>
+    </section>
+
+    <section>
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">ostatnie rozgrywki</div>
+          <h2>Spotkania</h2>
+        </div>
+        <span class="section-mark">01</span>
+      </div>
+      <div id="meetings"><p aria-busy="true">Ładowanie…</p></div>
+    </section>
+
+    <section>
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">stan rozliczeń</div>
+          <h2>Zaległości</h2>
+        </div>
+        <span class="section-mark">02</span>
+      </div>
+      <div class="debt-total"><span>łącznie do zebrania</span><strong id="total-due">0,00 zł</strong></div>
+      <div id="totals" class="totals"></div>
+    </section>
+  </main>
+
+  <dialog id="login-dialog">
+    <article>
+      <header>
+        <strong>Logowanie</strong>
+        <button id="login-close" class="close" aria-label="Zamknij" rel="prev">✕</button>
+      </header>
+      <form id="login-form" method="dialog">
+        <label>Email
+          <input type="email" id="login-email" required autocomplete="username" />
+        </label>
+        <label>Hasło
+          <input type="password" id="login-pass" required autocomplete="current-password" />
+        </label>
+        <p id="login-error" class="error" hidden></p>
+        <button type="submit">Zaloguj</button>
+      </form>
+    </article>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

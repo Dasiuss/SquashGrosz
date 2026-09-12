@@ -1,0 +1,392 @@
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+// ---- Konfiguracja (uzgodniona) ----
+const SUPABASE_URL = "https://qxxiujhtjffwptubvcih.supabase.co";
+const SUPABASE_KEY = "sb_publishable_KZHlKoj3Cdmiq9kLx0Un1g_PGXkKojI";
+const RATE_WEEKDAY = 83;
+const RATE_WEEKEND = 65;
+const MS_DISCOUNT = 15;
+const PLAYERS = [
+  { id: "dom", nick: "Dom", hasMS: false },
+  { id: "hy", nick: "Hy", hasMS: true },
+  { id: "ber", nick: "Ber", hasMS: true },
+  { id: "pa", nick: "Pa", hasMS: true },
+];
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = (s) => document.querySelector(s);
+let session = null;
+let meetings = [];
+let editingId = null;
+
+// ---- Helpery ----
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const isWeekendDate = (iso) => {
+  if (!iso) return false;
+  const d = new Date(iso + "T12:00:00");
+  return d.getDay() === 0 || d.getDay() === 6;
+};
+const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
+const fmt = (n) => `${Number(n).toFixed(2)} zł`;
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtDate = (iso) => {
+  try {
+    return new Date(iso + "T12:00:00").toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", weekday: "short" });
+  } catch { return iso; }
+};
+const dateInfo = (iso) => {
+  const d = new Date(iso + "T12:00:00");
+  return {
+    day: d.toLocaleDateString("pl-PL", { day: "2-digit" }),
+    month: d.toLocaleDateString("pl-PL", { month: "short" }).replace(".", ""),
+    weekday: d.toLocaleDateString("pl-PL", { weekday: "long" }),
+    year: d.getFullYear(),
+  };
+};
+const lockIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10M6 10h12v10H6zM12 14v2" /></svg>';
+
+// Koszt liczony ZAWSZE z zapisanych pól (total snapshot, nie ze zmiany cennika).
+function calc(m) {
+  const present = PLAYERS.filter((p) => m[`${p.id}_present`]);
+  const n = present.length;
+  const total = Number(m.total) || 0;
+  const share = n > 0 ? total / n : 0;
+  const costs = {};
+  for (const p of PLAYERS) {
+    if (!m[`${p.id}_present`]) { costs[p.id] = 0; continue; }
+    const ms = Number(m[`${p.id}_ms`]) || 0;
+    costs[p.id] = round2(Math.max(0, share - MS_DISCOUNT * ms));
+  }
+  return { total: round2(total), n, share: round2(share), costs };
+}
+
+function showError(msg) {
+  const el = $("#error");
+  if (!msg) { el.hidden = true; el.textContent = ""; return; }
+  el.hidden = false;
+  el.textContent = msg;
+}
+
+// ---- Formularz: budowa wierszy graczy ----
+function buildFormPlayers() {
+  const box = $("#form-players");
+  box.innerHTML = "";
+  for (const p of PLAYERS) {
+    const row = document.createElement("div");
+    row.className = "player-row";
+    row.innerHTML = `
+      <label class="player-select"><input type="checkbox" id="fp-${p.id}" /> <span class="player-avatar">${esc(p.nick[0])}</span><span class="player-name">${esc(p.nick)}</span></label>
+      ${p.hasMS
+        ? `<label class="ms-control"><span>MS</span><input type="number" id="fm-${p.id}" min="0" max="5" step="1" value="0" aria-label="Liczba odbić MS: ${esc(p.nick)}" /></label>`
+        : `<span class="ms-tag">bez MS</span><input type="hidden" id="fm-${p.id}" value="0" />`}
+    `;
+    box.appendChild(row);
+  }
+  for (const p of PLAYERS) {
+    $(`#fp-${p.id}`).addEventListener("change", () => { syncMsDisabled(); applyDefaults(); updatePreview(); });
+  }
+  const hours = $("#f-hours");
+  if (hours && !hours.dataset.bound) {
+    hours.dataset.bound = "1";
+    hours.addEventListener("input", () => { applyMsDefaults(); updatePreview(); });
+  }
+}
+
+function formState() {
+  const present = PLAYERS.filter((p) => $(`#fp-${p.id}`)?.checked);
+  return {
+    date: $("#f-date").value,
+    isWeekend: $("#f-rate-type").value === "weekend",
+    courts: Number($("#f-courts").value),
+    hours: Number($("#f-hours").value),
+    presentIds: present.map((p) => p.id),
+    ms: Object.fromEntries(PLAYERS.map((p) => [p.id, Math.max(0, Math.min(5, parseInt($(`#fm-${p.id}`)?.value || "0", 10) || 0))])),
+  };
+}
+
+function syncMsDisabled() {
+  for (const p of PLAYERS) {
+    if (!p.hasMS) continue;
+    const on = $(`#fp-${p.id}`)?.checked;
+    const inp = $(`#fm-${p.id}`);
+    if (inp) inp.disabled = !on;
+  }
+}
+
+// Defaulty: 2 os -> 1 kort/1h, 3 os -> 1 kort/1.5h, 4 os -> 2 korty/1h. MS = ceil(godzin).
+function applyDefaults() {
+  const n = PLAYERS.filter((p) => $(`#fp-${p.id}`)?.checked).length;
+  if (n === 2) { $("#f-courts").value = 1; $("#f-hours").value = 1; }
+  else if (n === 3) { $("#f-courts").value = 1; $("#f-hours").value = 1.5; }
+  else if (n >= 4) { $("#f-courts").value = 2; $("#f-hours").value = 1; }
+  applyMsDefaults();
+}
+function applyMsDefaults() {
+  const h = Number($("#f-hours").value) || 0;
+  const d = Math.max(0, Math.min(5, Math.ceil(h)));
+  for (const p of PLAYERS) {
+    if (!p.hasMS) { $(`#fm-${p.id}`).value = 0; continue; }
+    if ($(`#fp-${p.id}`)?.checked) $(`#fm-${p.id}`).value = d;
+    else $(`#fm-${p.id}`).value = 0;
+  }
+}
+
+function updatePreview() {
+  const s = formState();
+  if (!s.date || s.presentIds.length === 0) { $("#preview").textContent = "Zaznacz obecnych, aby zobaczyć podgląd kosztów."; return; }
+  const rate = s.isWeekend ? RATE_WEEKEND : RATE_WEEKDAY;
+  const total = round2(s.courts * s.hours * rate);
+  const share = total / s.presentIds.length;
+  const parts = s.presentIds.map((id) => {
+    const p = PLAYERS.find((x) => x.id === id);
+    const c = round2(Math.max(0, share - MS_DISCOUNT * (s.ms[id] || 0)));
+    return `${p.nick}: ${fmt(c)}${(s.ms[id] || 0) > 0 ? ` (MS×${s.ms[id]})` : ""}`;
+  });
+  $("#preview").textContent = `Razem ${fmt(total)} (${s.courts} kort × ${s.hours}h × ${rate} zł) → ${parts.join(" · ")}`;
+}
+
+// ---- Render ----
+function render() {
+  const admin = !!session;
+  $("#admin-panel").hidden = !admin;
+  $("#auth-btn").innerHTML = lockIcon;
+  $("#auth-btn").title = admin ? "Wyloguj" : "Zaloguj jako administrator";
+  $("#auth-btn").setAttribute("aria-label", admin ? "Wyloguj" : "Zaloguj jako administrator");
+  renderMeetings(admin);
+  renderTotals(admin);
+}
+
+function renderMeetings(admin) {
+  const box = $("#meetings");
+  if (meetings.length === 0) { box.innerHTML = "<p>Brak spotkań. Miłego grania! 🎾</p>"; return; }
+  box.innerHTML = "";
+  for (const m of meetings) {
+    const c = calc(m);
+    const date = dateInfo(m.game_date);
+    const card = document.createElement("article");
+    card.className = "meeting";
+    const badge = m.is_weekend
+      ? `<span class="badge weekend">weekend · ${m.rate} zł/h</span>`
+      : `<span class="badge week">tydzień · ${m.rate} zł/h</span>`;
+    const rows = PLAYERS.filter((p) => m[`${p.id}_present`]).map((p) => {
+      const paid = !!m[`${p.id}_paid`];
+      return `<div class="payment-line">
+        <div class="player-payment"><span class="payment-avatar">${esc(p.nick[0])}</span><div><span class="payment-name">${esc(p.nick)}</span><span class="payment-meta">${p.hasMS ? `Multisport ×${Number(m[`${p.id}_ms`]) || 0}` : "bez Multisport"}</span></div></div>
+        <div class="payment-status"><strong>${fmt(c.costs[p.id])}</strong><label><input type="checkbox" data-paid="${m.id}:${p.id}" ${paid ? "checked" : ""} ${admin ? "" : "disabled"} /> <span class="${paid ? "paid" : "unpaid"}">${paid ? "opłacone" : "zaległe"}</span></label></div>
+      </div>`;
+    }).join("");
+    card.innerHTML = `
+      <div class="meeting-head">
+        <div><div class="date-lockup"><span class="date-number">${esc(date.day)}</span><span class="date-copy"><strong>${esc(date.weekday)}</strong>${esc(date.month)} ${date.year}</span></div>${badge}</div>
+        <div class="meeting-price">${fmt(c.total)}<small>${Number(m.courts)} kort × ${Number(m.hours)}h</small></div>
+      </div>
+      <div class="payment-lines">${rows || `<div class="payment-line">Brak obecnych?</div>`}</div>
+      ${admin ? `<div class="row-actions">
+        <button data-edit="${m.id}">edytuj spotkanie</button>
+        <button data-del="${m.id}">usuń</button>
+      </div>` : ""}
+    `;
+    box.appendChild(card);
+  }
+  box.querySelectorAll("[data-paid]").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      const [id, pid] = cb.dataset.paid.split(":");
+      togglePaid(id, pid, cb.checked);
+    });
+  });
+  box.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => startEdit(b.dataset.edit)));
+  box.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => removeMeeting(b.dataset.del)));
+}
+
+function renderTotals(admin) {
+  const box = $("#totals");
+  box.innerHTML = "";
+  let totalDue = 0;
+  for (const p of PLAYERS) {
+    let sum = 0, count = 0;
+    for (const m of meetings) {
+      if (m[`${p.id}_present`] && !m[`${p.id}_paid`]) { sum = round2(sum + calc(m).costs[p.id]); count++; }
+    }
+    totalDue = round2(totalDue + sum);
+    const card = document.createElement("div");
+    card.className = "total-card";
+    card.innerHTML = `
+      <div><strong>${esc(p.nick)}</strong><small>${count === 1 ? "1 zaległe spotkanie" : `${count} zaległych spotkań`}</small></div>
+      <div class="sum">${fmt(sum)}</div>
+      <button class="small" data-payall="${p.id}" ${admin && sum > 0 ? "" : "disabled"} title="${admin ? "Oznacz wszystko jako zapłacone" : "Tylko dla zalogowanego"}">zapłacił całość</button>
+    `;
+    box.appendChild(card);
+  }
+  $("#total-due").textContent = fmt(totalDue);
+  box.querySelectorAll("[data-payall]").forEach((b) => b.addEventListener("click", () => payAll(b.dataset.payall)));
+}
+
+// ---- Dane ----
+async function loadMeetings() {
+  showError("");
+  const { data, error } = await supabase.from("meetings").select("*").order("game_date", { ascending: false }).order("created_at", { ascending: false });
+  if (error) { showError(`Błąd odczytu: ${error.message}. Sprawdź tabelę (supabase.sql) i klucz.`); return; }
+  meetings = data || [];
+  render();
+}
+
+async function togglePaid(id, pid, paid) {
+  if (!session) return;
+  const { error } = await supabase.from("meetings").update({ [`${pid}_paid`]: paid }).eq("id", id);
+  if (error) { showError(`Błąd zapisu płatności: ${error.message}`); await loadMeetings(); return; }
+  const m = meetings.find((x) => x.id === id);
+  if (m) m[`${pid}_paid`] = paid;
+  render();
+}
+
+async function payAll(pid) {
+  if (!session) return;
+  const p = PLAYERS.find((x) => x.id === pid);
+  const unpaid = meetings.filter((m) => m[`${pid}_present`] && !m[`${pid}_paid`]);
+  if (unpaid.length === 0) return;
+  if (!confirm(`Oznaczyć ${unpaid.length} zaległych spotkań gracza ${p.nick} jako zapłacone?`)) return;
+  for (const m of unpaid) {
+    const { error } = await supabase.from("meetings").update({ [`${pid}_paid`]: true }).eq("id", m.id);
+    if (error) { showError(`Błąd przy „zapłacił całość”: ${error.message}`); await loadMeetings(); return; }
+    m[`${pid}_paid`] = true;
+  }
+  render();
+}
+
+function startEdit(id) {
+  const m = meetings.find((x) => x.id === id);
+  if (!m) return;
+  editingId = id;
+  $("#form-title").textContent = `Edycja: ${fmtDate(m.game_date)}`;
+  $("#f-date").value = m.game_date;
+  $("#f-rate-type").value = m.is_weekend ? "weekend" : "week";
+  $("#f-courts").value = m.courts;
+  $("#f-hours").value = m.hours;
+  for (const p of PLAYERS) {
+    $(`#fp-${p.id}`).checked = !!m[`${p.id}_present`];
+    $(`#fm-${p.id}`).value = Number(m[`${p.id}_ms`]) || 0;
+  }
+  syncMsDisabled();
+  updatePreview();
+  $("#btn-save").textContent = "Zapisz zmiany";
+  $("#btn-cancel").hidden = false;
+  $("#admin-panel").scrollIntoView({ behavior: "smooth" });
+}
+
+function resetForm() {
+  editingId = null;
+  $("#form-title").textContent = "Nowe spotkanie";
+  $("#f-date").value = todayISO();
+  $("#f-rate-type").value = isWeekendDate($("#f-date").value) ? "weekend" : "week";
+  $("#f-courts").value = 1;
+  $("#f-hours").value = 1;
+  for (const p of PLAYERS) { $(`#fp-${p.id}`).checked = false; $(`#fm-${p.id}`).value = 0; }
+  syncMsDisabled();
+  updatePreview();
+  $("#btn-save").textContent = "Dodaj spotkanie";
+  $("#btn-cancel").hidden = true;
+}
+
+async function removeMeeting(id) {
+  if (!session) return;
+  if (!confirm("Usunąć to spotkanie? Tej operacji nie da się cofnąć.")) return;
+  const { error } = await supabase.from("meetings").delete().eq("id", id);
+  if (error) { showError(`Błąd usuwania: ${error.message}`); return; }
+  meetings = meetings.filter((m) => m.id !== id);
+  render();
+}
+
+async function saveMeeting(e) {
+  e.preventDefault();
+  if (!session) { showError("Musisz być zalogowany."); return; }
+  const s = formState();
+  if (!s.date) { showError("Wybierz datę gry."); return; }
+  if (s.presentIds.length < 2) { showError("Zaznacz co najmniej 2 obecnych."); return; }
+  if (![1, 2, 3].includes(s.courts)) { showError("Liczba kortów: 1–3."); return; }
+  if (!(s.hours >= 0.5 && s.hours <= 5)) { showError("Godziny: 0.5–5."); return; }
+  const rate = s.isWeekend ? RATE_WEEKEND : RATE_WEEKDAY;
+  const total = round2(s.courts * s.hours * rate);
+  const existing = editingId ? meetings.find((m) => m.id === editingId) : null;
+  const payload = {
+    game_date: s.date,
+    is_weekend: s.isWeekend,
+    rate, courts: s.courts, hours: s.hours, total,
+  };
+  for (const p of PLAYERS) {
+    const on = s.presentIds.includes(p.id);
+    payload[`${p.id}_present`] = on;
+    payload[`${p.id}_ms`] = on ? (p.hasMS ? (s.ms[p.id] || 0) : 0) : 0;
+    payload[`${p.id}_paid`] = existing && on ? !!existing[`${p.id}_paid`] : false;
+  }
+  showError("");
+  if (editingId) {
+    const { error } = await supabase.from("meetings").update(payload).eq("id", editingId);
+    if (error) { showError(`Błąd zapisu: ${error.message}`); return; }
+  } else {
+    const { error } = await supabase.from("meetings").insert(payload);
+    if (error) { showError(`Błąd zapisu: ${error.message} (czy w Supabase wykonano supabase.sql i włączono RLS?)`); return; }
+  }
+  resetForm();
+  await loadMeetings();
+}
+
+// ---- Auth ----
+async function initAuth() {
+  const { data } = await supabase.auth.getSession();
+  session = data.session || null;
+  render();
+  supabase.auth.onAuthStateChange((_ev, s) => { session = s; render(); });
+}
+
+// ---- Start ----
+document.addEventListener("DOMContentLoaded", async () => {
+  buildFormPlayers();
+  $("#f-date").value = todayISO();
+  $("#f-rate-type").value = isWeekendDate($("#f-date").value) ? "weekend" : "week";
+  $("#f-date").addEventListener("change", () => {
+    $("#f-rate-type").value = isWeekendDate($("#f-date").value) ? "weekend" : "week";
+    updatePreview();
+  });
+  $("#f-rate-type").addEventListener("change", updatePreview);
+  $("#f-courts").addEventListener("input", updatePreview);
+  $("#btn-defaults").addEventListener("click", () => { applyDefaults(); updatePreview(); });
+  document.querySelectorAll("#form-players input").forEach((i) => i.addEventListener("input", updatePreview));
+  $("#meeting-form").addEventListener("submit", saveMeeting);
+  $("#btn-cancel").addEventListener("click", resetForm);
+
+  const dlg = $("#login-dialog");
+  $("#auth-btn").addEventListener("click", async () => {
+    if (session) { await supabase.auth.signOut(); return; }
+    $("#login-error").hidden = true;
+    dlg.showModal();
+  });
+  $("#login-close").addEventListener("click", () => dlg.close());
+  $("#login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("#login-email").value.trim();
+    const password = $("#login-pass").value;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      const el = $("#login-error");
+      el.hidden = false;
+      el.textContent = `Nie udało się zalogować: ${error.message}`;
+      e.stopPropagation();
+      return;
+    }
+    dlg.close();
+    $("#login-pass").value = "";
+  });
+
+  syncMsDisabled();
+  updatePreview();
+  await initAuth();
+  await loadMeetings();
+
+  if ("serviceWorker" in navigator) {
+    try { await navigator.serviceWorker.register("./sw.js"); } catch { /* offline opcjonalny */ }
+  }
+});
