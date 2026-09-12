@@ -317,7 +317,7 @@ function renderTotals(admin) {
     }
     b.dataset.confirm = "true";
     b.classList.add("confirm");
-    b.textContent = "potwierdź";
+    b.textContent = "Potwierdź";
     window.setTimeout(() => {
       if (!b.isConnected || b.dataset.confirm !== "true") return;
       b.dataset.confirm = "false";
@@ -380,7 +380,7 @@ function startEdit(id) {
   $("#btn-delete-edit").hidden = false;
   $("#btn-delete-edit").dataset.confirm = "false";
   $("#btn-delete-edit").classList.remove("confirm");
-  $("#btn-delete-edit").textContent = "usuń";
+  $("#btn-delete-edit").textContent = "Usuń";
   render();
   $("#admin-panel").scrollIntoView({ behavior: "smooth" });
 }
@@ -399,11 +399,11 @@ function resetForm() {
   syncMsDisabled();
   updatePreview();
   $("#btn-save").textContent = "Dodaj spotkanie";
-  $("#btn-cancel").hidden = true;
+  $("#btn-cancel").hidden = false;
   $("#btn-delete-edit").hidden = true;
   $("#btn-delete-edit").dataset.confirm = "false";
   $("#btn-delete-edit").classList.remove("confirm");
-  $("#btn-delete-edit").textContent = "usuń";
+  $("#btn-delete-edit").textContent = "Usuń";
 }
 
 async function removeMeeting(id) {
@@ -490,12 +490,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     button.dataset.confirm = "true";
     button.classList.add("confirm");
-    button.textContent = "potwierdź";
+    button.textContent = "Potwierdź";
     window.setTimeout(() => {
       if (!button.isConnected || button.dataset.confirm !== "true") return;
       button.dataset.confirm = "false";
       button.classList.remove("confirm");
-      button.textContent = "usuń";
+      button.textContent = "Usuń";
     }, 3500);
   });
   $("#btn-show-form")?.addEventListener("click", () => {
