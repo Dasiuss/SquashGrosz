@@ -33,6 +33,7 @@ const isWeekendDate = (iso) => {
 };
 const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
 const fmt = (n) => `${Number(n).toFixed(2)} zł`;
+const fmtWhole = (n) => `${Math.round(Number(n))} zł`;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtDate = (iso) => {
   try {
@@ -41,10 +42,11 @@ const fmtDate = (iso) => {
 };
 const dateInfo = (iso) => {
   const d = new Date(iso + "T12:00:00");
+  const weekday = d.toLocaleDateString("pl-PL", { weekday: "long" });
   return {
     day: d.toLocaleDateString("pl-PL", { day: "2-digit" }),
     month: d.toLocaleDateString("pl-PL", { month: "short" }).replace(".", ""),
-    weekday: d.toLocaleDateString("pl-PL", { weekday: "long" }),
+    weekday: weekday === "poniedziałek" ? "pon." : weekday,
     year: d.getFullYear(),
   };
 };
@@ -302,13 +304,13 @@ function renderTotals(admin) {
     const card = document.createElement("div");
     card.className = "summary-cell";
     card.innerHTML = `
-      <strong>${fmt(sum)}</strong>
+      <strong>${fmtWhole(sum)}</strong>
       <small>${count === 1 ? "1 zaległe" : `${count} zaległych`}</small>
       <button class="pay-all-button" data-payall="${p.id}" ${admin && sum > 0 ? "" : "disabled"}>Zapłacone</button>
     `;
     box.appendChild(card);
   }
-  $("#total-due").textContent = fmt(totalDue);
+  $("#total-due").textContent = fmtWhole(totalDue);
   box.querySelectorAll("[data-payall]").forEach((b) => b.addEventListener("click", () => {
     if (b.dataset.confirm === "true") {
       b.dataset.confirm = "false";
