@@ -33,7 +33,6 @@ const isWeekendDate = (iso) => {
 };
 const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
 const fmt = (n) => `${Number(n).toFixed(2)} zł`;
-const fmtWhole = (n) => `${Math.round(Number(n))} zł`;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtDate = (iso) => {
   try {
@@ -295,22 +294,25 @@ function renderTotals(admin) {
   const box = $("#totals");
   box.innerHTML = "";
   let totalDue = 0;
+  let hyPaTotal = 0;
   for (const p of PLAYERS) {
     let sum = 0, count = 0;
     for (const m of meetings) {
       if (m[`${p.id}_present`] && !m[`${p.id}_paid`]) { sum = round2(sum + calc(m).costs[p.id]); count++; }
     }
     totalDue = round2(totalDue + sum);
+    if (p.id === "hy" || p.id === "pa") hyPaTotal = round2(hyPaTotal + sum);
     const card = document.createElement("div");
     card.className = "summary-cell";
     card.innerHTML = `
-      <strong>${fmtWhole(sum)}</strong>
+      <strong>${fmt(sum)}</strong>
       <small>${count === 1 ? "1 zaległe" : `${count} zaległych`}</small>
       <button class="pay-all-button" data-payall="${p.id}" ${admin && sum > 0 ? "" : "disabled"}>Zapłacone</button>
     `;
     box.appendChild(card);
   }
-  $("#total-due").textContent = fmtWhole(totalDue);
+  $("#total-due").textContent = fmt(totalDue);
+  $("#hy-pa-summary").innerHTML = `<span>Hy + Pa razem</span><strong>${fmt(hyPaTotal)}</strong>`;
   box.querySelectorAll("[data-payall]").forEach((b) => b.addEventListener("click", () => {
     if (b.dataset.confirm === "true") {
       b.dataset.confirm = "false";
