@@ -316,7 +316,7 @@ function renderTotals(admin) {
     card.className = `summary-cell${combined ? " summary-combined" : ""}`;
     if (combined) {
       card.innerHTML = `
-        <strong>${fmtNumber(summaries.hy.sum)}+${fmtNumber(summaries.pa.sum)}=${fmt(hyPa.sum)}</strong>
+        <strong>${fmtNumber(summaries.hy.sum)} + ${fmtNumber(summaries.pa.sum)} = ${fmt(hyPa.sum)}</strong>
         <small>${summaries.hy.count}+${summaries.pa.count} zaległych</small>
         <button class="pay-all-button" data-payall="hy-pa" ${admin && hyPa.sum > 0 ? "" : "disabled"}>Zapłacone</button>
       `;

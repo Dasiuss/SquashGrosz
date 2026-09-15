@@ -291,13 +291,11 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 .bat-icon { display: inline-block; font-size: 0.72rem; line-height: 1; }
 
 .totals { display: contents; }
-.summary-cell { display: flex; min-height: 94px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding: 12px; border-right: 1px solid var(--line); }
+.summary-cell { display: flex; min-height: 94px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding: 10px; border-right: 1px solid var(--line); }
 .summary-cell:last-child { border-right: 0; }
 .summary-cell > strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: -0.03em; }
 .summary-cell > small { color: var(--muted); font-size: 0.58rem; font-weight: 700; }
-.summary-combined { grid-column: span 2; align-items: center; }
-.summary-combined > strong { font-size: 0.9rem; letter-spacing: -0.05em; white-space: nowrap; }
-.summary-combined > small { white-space: nowrap; }
+.summary-combined { min-width: 0; grid-column: span 2; align-items: center; }
 .pay-all-button { width: auto; margin: 0; padding: 4px 7px; border: 1px solid var(--line); border-radius: 99px; color: var(--lime-dark); background: transparent; box-shadow: none; font-size: 0.56rem; font-weight: 900; white-space: nowrap; }
 .pay-all-button:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); background: var(--lime); }
 .pay-all-button.confirm { border-color: #c49d27; color: #6c5100; background: #f5d85f; }
@@ -350,10 +348,9 @@ dialog form button { border: 0; border-radius: 11px; background: var(--ink); }
   .summary-cell { min-height: 78px; padding-top: 8px; padding-bottom: 8px; }
   .summary-label { padding-left: 7px; padding-right: 4px; font-size: 0.48rem; letter-spacing: 0.04em; }
   .summary-label strong { font-size: 1rem; }
-  .summary-cell { padding-left: 4px; padding-right: 4px; }
-  .summary-cell > strong { font-size: 0.82rem; }
-  .summary-cell > small { font-size: 0.46rem; }
-  .summary-combined > strong { font-size: 0.58rem; }
+   .summary-cell { padding-left: 3px; padding-right: 3px; }
+   .summary-cell > strong { font-size: 0.82rem; }
+   .summary-cell > small { font-size: 0.46rem; }
   .pay-all-button { padding: 3px 4px; font-size: 0.46rem; }
   .meeting-menu { right: 2px; bottom: 3px; }
 }
@@ -372,6 +369,6 @@ dialog form button { border: 0; border-radius: 11px; background: var(--ink); }
   .ms-control { gap: 2px; }
   .form-card, #meetings > p { padding: 13px; }
   .summary-label { padding-left: 13px; padding-right: 13px; }
-  .summary-cell { padding-left: 9px; padding-right: 9px; }
+  .summary-cell { padding-left: 7px; padding-right: 7px; }
   .pay-all-button { font-size: 0.54rem; }
 }
