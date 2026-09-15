@@ -33,6 +33,7 @@ const isWeekendDate = (iso) => {
 };
 const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
 const fmt = (n) => `${Number(n).toFixed(2)} zł`;
+const fmtNumber = (n) => Number(n).toFixed(2);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtDate = (iso) => {
   try {
@@ -294,25 +295,41 @@ function renderTotals(admin) {
   const box = $("#totals");
   box.innerHTML = "";
   let totalDue = 0;
-  let hyPaTotal = 0;
+  const summaries = {};
   for (const p of PLAYERS) {
     let sum = 0, count = 0;
     for (const m of meetings) {
       if (m[`${p.id}_present`] && !m[`${p.id}_paid`]) { sum = round2(sum + calc(m).costs[p.id]); count++; }
     }
     totalDue = round2(totalDue + sum);
-    if (p.id === "hy" || p.id === "pa") hyPaTotal = round2(hyPaTotal + sum);
+    summaries[p.id] = { sum, count };
+  }
+  for (const p of PLAYERS) {
+    if (p.id === "pa") continue;
+    const personal = summaries[p.id];
+    const combined = p.id === "hy";
+    const hyPa = combined ? {
+      sum: round2(summaries.hy.sum + summaries.pa.sum),
+      count: summaries.hy.count + summaries.pa.count,
+    } : null;
     const card = document.createElement("div");
-    card.className = "summary-cell";
-    card.innerHTML = `
-      <strong>${fmt(sum)}</strong>
-      <small>${count === 1 ? "1 zaległe" : `${count} zaległych`}</small>
-      <button class="pay-all-button" data-payall="${p.id}" ${admin && sum > 0 ? "" : "disabled"}>Zapłacone</button>
-    `;
+    card.className = `summary-cell${combined ? " summary-combined" : ""}`;
+    if (combined) {
+      card.innerHTML = `
+        <strong>${fmtNumber(summaries.hy.sum)}+${fmtNumber(summaries.pa.sum)}=${fmt(hyPa.sum)}</strong>
+        <small>${summaries.hy.count}+${summaries.pa.count} zaległych</small>
+        <button class="pay-all-button" data-payall="hy-pa" ${admin && hyPa.sum > 0 ? "" : "disabled"}>Zapłacone</button>
+      `;
+    } else {
+      card.innerHTML = `
+        <strong>${fmt(personal.sum)}</strong>
+        <small>${personal.count === 1 ? "1 zaległe" : `${personal.count} zaległych`}</small>
+        <button class="pay-all-button" data-payall="${p.id}" ${admin && personal.sum > 0 ? "" : "disabled"}>Zapłacone</button>
+      `;
+    }
     box.appendChild(card);
   }
   $("#total-due").textContent = fmt(totalDue);
-  $("#hy-pa-summary").innerHTML = `<span>Hy + Pa razem</span><strong>${fmt(hyPaTotal)}</strong>`;
   box.querySelectorAll("[data-payall]").forEach((b) => b.addEventListener("click", () => {
     if (b.dataset.confirm === "true") {
       b.dataset.confirm = "false";
@@ -351,12 +368,18 @@ async function togglePaid(id, pid, paid) {
 
 async function payAll(pid) {
   if (!session) return;
-  const unpaid = meetings.filter((m) => m[`${pid}_present`] && !m[`${pid}_paid`]);
+  const playerIds = pid === "hy-pa" ? ["hy", "pa"] : [pid];
+  const unpaid = [];
+  for (const m of meetings) {
+    for (const playerId of playerIds) {
+      if (m[`${playerId}_present`] && !m[`${playerId}_paid`]) unpaid.push({ meeting: m, playerId });
+    }
+  }
   if (unpaid.length === 0) return;
-  for (const m of unpaid) {
-    const { error } = await supabase.from("meetings").update({ [`${pid}_paid`]: true }).eq("id", m.id);
+  for (const { meeting, playerId } of unpaid) {
+    const { error } = await supabase.from("meetings").update({ [`${playerId}_paid`]: true }).eq("id", meeting.id);
     if (error) { showError(`Błąd przy oznaczaniu płatności: ${error.message}`); await loadMeetings(); return; }
-    m[`${pid}_paid`] = true;
+    meeting[`${playerId}_paid`] = true;
   }
   render();
 }

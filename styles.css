@@ -295,6 +295,9 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 .summary-cell:last-child { border-right: 0; }
 .summary-cell > strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; letter-spacing: -0.03em; }
 .summary-cell > small { color: var(--muted); font-size: 0.58rem; font-weight: 700; }
+.summary-combined { grid-column: span 2; align-items: center; }
+.summary-combined > strong { font-size: 0.9rem; letter-spacing: -0.05em; white-space: nowrap; }
+.summary-combined > small { white-space: nowrap; }
 .pay-all-button { width: auto; margin: 0; padding: 4px 7px; border: 1px solid var(--line); border-radius: 99px; color: var(--lime-dark); background: transparent; box-shadow: none; font-size: 0.56rem; font-weight: 900; white-space: nowrap; }
 .pay-all-button:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); background: var(--lime); }
 .pay-all-button.confirm { border-color: #c49d27; color: #6c5100; background: #f5d85f; }
@@ -302,9 +305,6 @@ fieldset legend { margin-bottom: 3px; color: var(--ink); font-family: Georgia, "
 .pay-all-button:focus-visible { outline: 2px solid var(--lime-dark); outline-offset: 2px; }
 .pay-all-button.confirm:focus { border-color: #c49d27; color: #6c5100; background: #f5d85f; }
 .pay-all-button:disabled { display: none; }
-.hy-pa-summary { display: flex; align-items: baseline; justify-content: flex-end; gap: 9px; padding: 8px 16px 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.58rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
-.hy-pa-summary strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1rem; letter-spacing: -0.03em; text-transform: none; }
-
 dialog { border: 0; border-radius: 20px; background: var(--card); box-shadow: 0 24px 80px rgba(24, 32, 31, 0.25); }
 dialog::backdrop { background: rgba(24, 32, 31, 0.34); backdrop-filter: blur(3px); }
 dialog article { min-width: min(100%, 360px); margin: 0; padding: 22px; background: transparent; }
@@ -353,9 +353,8 @@ dialog form button { border: 0; border-radius: 11px; background: var(--ink); }
   .summary-cell { padding-left: 4px; padding-right: 4px; }
   .summary-cell > strong { font-size: 0.82rem; }
   .summary-cell > small { font-size: 0.46rem; }
+  .summary-combined > strong { font-size: 0.58rem; }
   .pay-all-button { padding: 3px 4px; font-size: 0.46rem; }
-  .hy-pa-summary { justify-content: center; padding: 7px 4px 8px; font-size: 0.46rem; }
-  .hy-pa-summary strong { font-size: 0.82rem; }
   .meeting-menu { right: 2px; bottom: 3px; }
 }
 
