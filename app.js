@@ -172,7 +172,7 @@ function setRate(val) {
   updatePreview();
 }
 
-// Defaulty: 2 os -> 1 kort/1h, 3 os -> 1 kort/1.5h, 4 os -> 2 korty/1h. MS = ceil(godzin).
+// Defaulty: 2 os -> 1 kort/1h, 3 os -> 1 kort/1.5h, 4 os -> 2 korty/1h. MS = floor(godzin).
 function applyDefaults() {
   const n = PLAYERS.filter((p) => $(`#fp-${p.id}`)?.checked).length;
   if (n === 2) { $("#f-courts").value = 1; $("#f-hours").value = 1; }
@@ -182,7 +182,7 @@ function applyDefaults() {
 }
 function applyMsDefaults() {
   const h = Number($("#f-hours").value) || 0;
-  const d = Math.max(0, Math.min(5, Math.ceil(h)));
+  const d = Math.max(0, Math.min(5, Math.floor(h)));
   for (const p of PLAYERS) {
     if (!p.hasMS) { $(`#fm-${p.id}`).value = 0; continue; }
     if ($(`#fp-${p.id}`)?.checked) $(`#fm-${p.id}`).value = d;
